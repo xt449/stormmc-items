@@ -8,6 +8,8 @@ import org.checkerframework.checker.nullness.qual.NonNull;
 import org.intellij.lang.annotations.Pattern;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.Collections;
+
 /**
  * @author Jonathan Talcott (xt449 / BinaryBanana)
  */
@@ -31,6 +33,6 @@ public class CustomItem implements Keyed {
 	private static final Material CUSTOM_ITEM_MATERIAL = Material.NETHERITE_HOE;
 
 	public ItemStack createItemStack() {
-		return ItemStack.builder(CUSTOM_ITEM_MATERIAL).meta(new CustomItemMeta.Builder().damage(id).build()).build();
+		return ItemStack.builder(CUSTOM_ITEM_MATERIAL).meta(new CustomItemMeta.Builder().damage(id).attributes(Collections.emptyList()).build()).build();
 	}
 }
