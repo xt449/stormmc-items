@@ -1,0 +1,19 @@
+plugins {
+    id 'java'
+//    id "com.minestom.gradle" version "1.0"
+}
+
+group 'com.github.xt449'
+version '1.0-SNAPSHOT'
+
+repositories {
+    mavenCentral()
+    maven { url 'https://repo.spongepowered.org/maven' }
+    maven { url 'https://repo.velocitypowered.com/snapshots/' }
+    maven { url 'https://libraries.minecraft.net' }
+    maven { url 'https://jitpack.io/' }
+}
+
+dependencies {
+    implementation 'com.github.Minestom:Minestom:-SNAPSHOT'
+}
