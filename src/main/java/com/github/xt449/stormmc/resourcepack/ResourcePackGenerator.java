@@ -1,40 +1,46 @@
-package com.github.xt449.stormmc.item;
+package com.github.xt449.stormmc.resourcepack;
 
+import com.github.xt449.stormmc.item.CustomItem;
+import com.github.xt449.stormmc.item.CustomItemManager;
+import com.google.common.collect.ListMultimap;
 import com.google.gson.*;
 import net.minestom.server.item.Material;
 
-import java.io.File;
-import java.io.FileReader;
-import java.io.FileWriter;
-import java.io.IOException;
+import java.io.*;
 
 /**
  * @author Jonathan Talcott (xt449 / BinaryBanana)
  */
 public class ResourcePackGenerator {
 
-	private final CustomItemManager itemManager;
+	private static final File minecraftAssets = new File("./pack/assets/minecraft");
+	private static final File itemModels = new File(minecraftAssets, "/models/item");
+	private static final File customModels = new File(minecraftAssets, "/models/custom");
+
+	private static final File vanillaItemModels = new File("./vanilla/assets/minecraft/models/item");
+
 	private final Gson gson = new GsonBuilder().setPrettyPrinting().create();
-
-	private final File minecraftAssets = new File("./pack/assets/minecraft");
-	private final File itemModels = new File(minecraftAssets, "/models/item");
-	private final File customModels = new File(minecraftAssets, "/models/custom");
-
-	private final File vanillaItemModels = new File("./vanilla/assets/minecraft/models/item");
+	private final CustomItemManager itemManager;
+	private final ListMultimap<Material, CustomItem> customItems;
 
 	public ResourcePackGenerator(CustomItemManager itemManager) {
 		this.itemManager = itemManager;
+		this.customItems = itemManager.getAllCustomItems();
 	}
 
 	public void generate() throws IOException {
 		itemModels.mkdirs();
 		customModels.mkdirs();
 
-		for(Material material : itemManager.customItems.keySet()) {
+		for(Material material : customItems.keySet()) {
 			final File file = new File(itemModels, material.key().value() + ".json");
 			file.delete();
 			final FileWriter writer = new FileWriter(file, true);
-			gson.toJson(createModel(material), writer);
+			try {
+				gson.toJson(createModel(material), writer);
+			} catch(FileNotFoundException exc) {
+				System.err.println("Missing vanilla model file \"" + material.key().value() + ".json\"! Skipping material...");
+			}
 			writer.close();
 		}
 	}
@@ -45,7 +51,7 @@ public class ResourcePackGenerator {
 		root.add("overrides", overrides);
 		overrides.add(createDefault(material));
 
-		for(CustomItem customItem : itemManager.customItems.get(material)) {
+		for(CustomItem customItem : customItems.get(material)) {
 			overrides.add(createOverride(customItem));
 
 			final File file = new File(customModels, material.key().value() + customItem.id + ".json");

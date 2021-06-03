@@ -1,5 +1,5 @@
 import com.github.xt449.stormmc.item.CustomItemManager;
-import com.github.xt449.stormmc.item.ResourcePackGenerator;
+import com.github.xt449.stormmc.resourcepack.ResourcePackGenerator;
 import net.minestom.server.item.Material;
 
 import java.io.IOException;
