@@ -20,11 +20,9 @@ public class ResourcePackGenerator {
 	private static final File vanillaItemModels = new File("./vanilla/assets/minecraft/models/item");
 
 	private final Gson gson = new GsonBuilder().setPrettyPrinting().create();
-	private final CustomItemManager itemManager;
 	private final ListMultimap<Material, CustomItem> customItems;
 
 	public ResourcePackGenerator(CustomItemManager itemManager) {
-		this.itemManager = itemManager;
 		this.customItems = itemManager.getAllCustomItems();
 	}
 
@@ -35,63 +33,44 @@ public class ResourcePackGenerator {
 		for(Material material : customItems.keySet()) {
 			final File file = new File(itemModels, material.key().value() + ".json");
 			file.delete();
-			final FileWriter writer = new FileWriter(file, true);
-			try {
-				gson.toJson(createModel(material), writer);
-			} catch(FileNotFoundException exc) {
-				System.err.println("Missing vanilla model file \"" + material.key().value() + ".json\"! Skipping material...");
+			try(FileWriter writer = new FileWriter(file, true)) {
+				try {
+					gson.toJson(createBaseModel(material), writer);
+				} catch(FileNotFoundException exc) {
+					System.err.println("Missing vanilla model file \"" + material.key().value() + ".json\"! Skipping material...");
+				}
 			}
-			writer.close();
 		}
 	}
 
-	private JsonObject createModel(Material material) throws IOException {
+	private JsonObject createBaseModel(Material material) throws IOException {
 		final JsonObject root = JsonParser.parseReader(new FileReader(new File(vanillaItemModels, material.key().value() + ".json"))).getAsJsonObject();
 		final JsonArray overrides = new JsonArray(2);
 		root.add("overrides", overrides);
-		overrides.add(createDefault(material));
+		overrides.add(createOverrideDefault(material));
 
 		for(CustomItem customItem : customItems.get(material)) {
 			overrides.add(createOverride(customItem));
 
 			final File file = new File(customModels, material.key().value() + customItem.id + ".json");
 			file.delete();
-			final FileWriter writer = new FileWriter(file, true);
-			gson.toJson(createOverrideModel(customItem), writer);
-			writer.close();
+			try(FileWriter writer = new FileWriter(file, true)) {
+				gson.toJson(createCustomModel(customItem), writer);
+			}
 		}
 
 		return root;
 	}
 
-	private static final JsonObject DEFAULT_PREDICATE = new JsonObject();
-
-	static {
-		DEFAULT_PREDICATE.add("custom_model_data", new JsonPrimitive(0));
+	private JsonElement createOverrideDefault(Material material) {
+		return JsonParser.parseString("{\"predicate\":{\"custom_model_data\":0},\"model\":\"item/" + material.key().value() + "\"}");
 	}
 
-	private JsonObject createDefault(Material material) {
-		final JsonObject override = new JsonObject();
-		override.add("predicate", DEFAULT_PREDICATE);
-		override.add("model", new JsonPrimitive("item/" + material.key().value()));
-		return override;
+	private JsonElement createOverride(CustomItem item) {
+		return JsonParser.parseString("{\"predicate\":{\"custom_model_data\":" + item.id + "},\"model\":\"item/" + item.material.key().value() + item.id + "\"}");
 	}
 
-	private JsonObject createOverride(CustomItem item) {
-		final JsonObject override = new JsonObject();
-		final JsonObject predicate = new JsonObject();
-		override.add("predicate", predicate);
-		predicate.add("custom_model_data", new JsonPrimitive(item.id));
-		override.add("model", new JsonPrimitive("custom/" + item.material.key().value() + item.id));
-		return override;
-	}
-
-	private JsonObject createOverrideModel(CustomItem item) {
-		final JsonObject root = new JsonObject();
-		final JsonObject textures = new JsonObject();
-		root.add("parent", new JsonPrimitive("minecraft:item/generated"));
-		root.add("textures", textures);
-		textures.add("layer0", new JsonPrimitive("minecarft:item/" + item.name.toLowerCase().replaceAll(" ", "_")));
-		return root;
+	private JsonElement createCustomModel(CustomItem item) {
+		return JsonParser.parseString("{\"parent\":\"minecraft:item/generated\",\"textures\":{\"layer0\":\"minecarft:item/" + item.name.toLowerCase().replaceAll(" ", "_") + "\"}}");
 	}
 }
