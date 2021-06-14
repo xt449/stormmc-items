@@ -10,14 +10,18 @@ import java.io.*;
 
 /**
  * @author Jonathan Talcott (xt449 / BinaryBanana)
+ *
+ * Requires the'generated' directory output of`java -cp server.jar net.minecraft.data.Main --all` to the working directory
  */
 public class ResourcePackGenerator {
 
-	private static final File minecraftAssets = new File("./pack/assets/minecraft");
-	private static final File itemModels = new File(minecraftAssets, "/models/item");
-	private static final File customModels = new File(minecraftAssets, "/models/custom");
+	private static final File vanillaAssets = new File("generated/assets/minecraft/");
+//	private static final File vanillaBlockStates = new File(vanillaAssets, "blockstates/");
+	private static final File vanillaItemModels = new File(vanillaAssets, "models/item");
 
-	private static final File vanillaItemModels = new File("./vanilla/assets/minecraft/models/item");
+	private static final File customAssets = new File("pack/assets/minecraft/");
+//	private static final File customBlockStates = new File(customAssets, "blockstates/");
+	private static final File customItemModels = new File(customAssets, "models/item");
 
 	private final Gson gson = new GsonBuilder().setPrettyPrinting().create();
 	private final ListMultimap<Material, CustomItem> customItems;
@@ -26,24 +30,24 @@ public class ResourcePackGenerator {
 		this.customItems = itemManager.getAllCustomItems();
 	}
 
-	public void generate() throws IOException {
-		itemModels.mkdirs();
-		customModels.mkdirs();
+	public void generateItems() throws IOException {
+		deleteAll(customItemModels);
+		new File(customItemModels, "custom").mkdirs();
 
 		for(Material material : customItems.keySet()) {
-			final File file = new File(itemModels, material.key().value() + ".json");
-			file.delete();
-			try(FileWriter writer = new FileWriter(file, true)) {
+			final File file = new File(customItemModels, material.key().value() + ".json");
+			try(FileWriter writer = new FileWriter(file, false)) {
 				try {
-					gson.toJson(createBaseModel(material), writer);
+					gson.toJson(createBaseItemModel(material), writer);
 				} catch(FileNotFoundException exc) {
+					exc.printStackTrace();
 					System.err.println("Missing vanilla model file \"" + material.key().value() + ".json\"! Skipping material...");
 				}
 			}
 		}
 	}
 
-	private JsonObject createBaseModel(Material material) throws IOException {
+	private JsonObject createBaseItemModel(Material material) throws IOException {
 		final JsonObject root = JsonParser.parseReader(new FileReader(new File(vanillaItemModels, material.key().value() + ".json"))).getAsJsonObject();
 		final JsonArray overrides = new JsonArray(2);
 		root.add("overrides", overrides);
@@ -52,9 +56,8 @@ public class ResourcePackGenerator {
 		for(CustomItem customItem : customItems.get(material)) {
 			overrides.add(createOverride(customItem));
 
-			final File file = new File(customModels, material.key().value() + customItem.id + ".json");
-			file.delete();
-			try(FileWriter writer = new FileWriter(file, true)) {
+			final File file = new File(customItemModels, "custom/" + material.key().value() + customItem.id + ".json");
+			try(FileWriter writer = new FileWriter(file, false)) {
 				gson.toJson(createCustomModel(customItem), writer);
 			}
 		}
@@ -72,5 +75,16 @@ public class ResourcePackGenerator {
 
 	private JsonElement createCustomModel(CustomItem item) {
 		return JsonParser.parseString("{\"parent\":\"minecraft:item/generated\",\"textures\":{\"layer0\":\"minecarft:item/" + item.name.toLowerCase().replaceAll(" ", "_") + "\"}}");
+	}
+
+	private void deleteAll(File file) {
+		if(file.isDirectory()) {
+			final File[] files = file.listFiles();
+			for(int i = 0; i < files.length; i++) {
+				deleteAll(files[i]);
+			}
+		}
+
+		file.delete();
 	}
 }

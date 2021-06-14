@@ -26,7 +26,7 @@ public class Example {
 		itemManager.registerItem(Material.NETHERITE_HOE, "Cancel");
 
 		try {
-			packGenerator.generate();
+			packGenerator.generateItems();
 		} catch(IOException exc) {
 			exc.printStackTrace();
 		}
